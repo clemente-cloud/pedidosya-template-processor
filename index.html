@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Template Processor — PedidosYa Content</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:    #E31937;
+  --accent-dim:#C4141F;
+  --amber:     #C99A3E;
+  --ink:       #F2F2F0;
+  --ink-2:     #B8B8B5;
+  --ink-3:     #8A8A87;
+  --border:    #232323;
+  --border-2:  #333333;
+  --bg:        #0A0A0A;
+  --surface:   #111111;
+  --surface-2: #161616;
+  --ok:        #6FCF97;
+  --ok-bg:     #0E1710;
+  --ok-ring:   #1F3327;
+  --warn:      var(--amber);
+  --warn-bg:   #1A160C;
+  --warn-ring: #4A3A1A;
+  --err:       #FFFFFF;
+  --err-bg:    #1A0C0E;
+  --err-ring:  var(--accent);
+  --radius:    6px;
+  --radius-sm: 3px;
+  --shadow:    0 1px 3px rgba(0,0,0,.2), 0 1px 2px rgba(0,0,0,.15);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.2);
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.wordmark {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: 15px; color: var(--ink);
+  letter-spacing: -0.3px;
+}
+.wordmark-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+}
+.topbar-divider {
+  width: 1px; height: 18px; background: var(--border-2);
+}
+.topbar-subtitle {
+  font-size: 12px; color: var(--ink-3); font-weight: 500;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.status-chip {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 500;
+  padding: 3px 10px; border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--ink-3);
+  background: var(--surface-2);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.status-chip.ready {
+  border-color: var(--ok-ring);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────── */
+.shell {
+  display: flex;
+  min-height: calc(100vh - 52px);
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  position: sticky;
+  top: 52px;
+  height: calc(100vh - 52px);
+  overflow-y: auto;
+}
+.sidebar-section {
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+.sidebar-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 8px 4px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px 7px 8px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+  user-select: none;
+}
+.nav-item:hover { background: var(--surface-2); color: var(--ink); }
+.nav-item:active { transform: scale(0.98); }
+.nav-item.active {
+  background: var(--surface-2);
+  border-left-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}
+.nav-item .icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.nav-badge.err { background: var(--err-bg); color: var(--err); border: 1px solid var(--err-ring); }
+.nav-badge.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-ring); }
+.nav-badge.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-ring); }
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 12px;
+}
+
+/* ── MAIN CONTENT ───────────────────────────────────── */
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 80px;
+}
+
+/* ── PANELS ─────────────────────────────────────────── */
+.panel { display: none; }
+.panel.active { display: block; animation: panelIn .22s ease; }
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── UPLOAD ─────────────────────────────────────────── */
+.upload-wrap {
+  max-width: 560px;
+  margin: 40px auto 0;
+}
+.upload-heading {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.upload-sub {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin-bottom: 28px;
+}
+.dropzone {
+  border: 1.5px dashed var(--border-2);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.dropzone:hover, .dropzone.drag {
+  border-color: var(--accent);
+  background: #170B0D;
+}
+.dropzone input { display: none; }
+.dz-icon { font-size: 36px; margin-bottom: 14px; }
+.dz-title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+.dz-sub { font-size: 13px; color: var(--ink-3); }
+.dz-sub span {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.file-pill {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: 13px;
+  animation: panelIn .18s ease;
+}
+.file-pill .pill-name { flex: 1; font-weight: 500; }
+.file-pill button {
+  border: none; background: none;
+  color: var(--ink-3); cursor: pointer;
+  font-size: 12px; text-decoration: underline;
+}
+.btn-run {
+  display: none;
+  width: 100%;
+  margin-top: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: -0.1px;
+  transition: background .12s, transform .08s;
+}
+.btn-run:hover { background: var(--accent-dim); }
+.btn-run:active { transform: scale(0.98); }
+
+/* Processing state */
+.proc-state {
+  display: none;
+  text-align: center;
+  padding: 64px 24px;
+}
+.loader {
+  width: 36px; height: 36px;
+  border: 2.5px solid var(--border-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.proc-label {
+  font-size: 14px; font-weight: 500; color: var(--ink-2);
+  margin-bottom: 4px;
+  transition: opacity .15s;
+}
+.proc-sub { font-size: 12px; color: var(--ink-3); }
+
+/* ── STATS ROW (barra unica dividida, estilo editorial) ─ */
+.stats-row {
+  display: flex;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.stat-card {
+  flex: 1;
+  min-width: 120px;
+  padding: 16px 18px;
+  border-right: 1px solid var(--border);
+}
+.stat-card:last-child { border-right: none; }
+.stat-val {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+.stat-lbl {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── ACTION BAR ─────────────────────────────────────── */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  transition: all .12s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--border-2); }
+.btn:active { transform: scale(0.97); }
+.btn.primary {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--border-2);
+}
+.btn.primary:hover { background: var(--border-2); }
+.btn.success {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn.success:hover { background: var(--accent-dim); }
+.btn.is-loading, .nav-item.is-loading { opacity: .6; pointer-events: none; cursor: wait; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: .6; } 50% { opacity: .85; } }
+
+/* Filter chips */
+.filter-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.fchip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-3);
+  transition: all .12s;
+}
+.fchip:hover { border-color: var(--border-2); color: var(--ink); }
+.fchip:active { transform: scale(0.96); }
+.fchip.active {
+  background: var(--ink);
+  color: #0A0A0A;
+  border-color: var(--ink);
+}
+.fchip.fc-err.active  { background: var(--accent); color: #fff; border-color: var(--accent); }
+.fchip.fc-warn.active { background: var(--warn);   color: #1A1408; border-color: var(--warn); }
+.fchip.fc-ok.active   { background: var(--ok);     color: #071B0F; border-color: var(--ok); }
+
+.action-spacer { flex: 1; }
+.edit-hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.tbl-outer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.tbl-scroll { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+thead tr {
+  background: #0D0D0D;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  user-select: none;
+}
+td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr.r-ok   { background: var(--surface); }
+tr.r-warn { background: var(--warn-bg); }
+tr.r-err  { background: var(--err-bg); }
+tr:hover td { background: #1C1C1C !important; }
+
+/* Editable cells */
+.cell {
+  min-height: 36px;
+  padding: 7px 12px;
+  outline: none;
+  cursor: text;
+  min-width: 80px;
+  line-height: 1.4;
+  transition: background .1s;
+  position: relative;
+}
+.cell[contenteditable]:focus {
+  background: #1F1408 !important;
+  box-shadow: inset 0 0 0 2px var(--amber);
+}
+.cell.cell-ro { cursor: default; color: var(--ink-2); }
+.cell.cell-empty { color: var(--ink-3); font-style: italic; }
+.cell-num { text-align: center; }
+
+/* Status badge — Noir: OK neutro, aviso ambar, error solido */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-ok   { background: transparent; color: var(--ink);  border: 1px solid var(--border-2); }
+.badge-warn { background: transparent; color: var(--amber); border: 1px solid var(--amber); }
+.badge-err  { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+
+/* Alert list inside cell */
+.alert-list { font-size: 11px; line-height: 1.6; }
+.a-err  { color: var(--accent); }
+.a-warn { color: var(--amber); }
+
+/* ── ALERTS PANEL ───────────────────────────────────── */
+.alerts-empty {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--ok);
+  font-size: 15px;
+  font-weight: 600;
+}
+.alerts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.alert-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  box-shadow: var(--shadow);
+}
+.alert-card.ac-err  { border-left: 3px solid var(--accent); background: var(--err-bg); }
+.alert-card.ac-warn { border-left: 3px solid var(--amber); background: var(--warn-bg); }
+.alert-fila {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 600;
+  min-width: 52px;
+  flex-shrink: 0;
+}
+.alert-prod {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 160px;
+  flex-shrink: 0;
+  color: var(--ink);
+}
+.alert-msgs {
+  font-size: 12px;
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.alert-tag {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+}
+.alert-tag.t-err  { background: var(--accent);  color: #fff; }
+.alert-tag.t-warn { background: var(--warn-bg); color: var(--amber); border: 1px solid var(--warn-ring); }
+
+/* ── FOOTER ─────────────────────────────────────────── */
+.info-bar {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.info-bar b { color: var(--ink-2); }
+
+/* ── HEADER COLORS (espejo de los colores reales del Excel) ── */
+th.col-red    { background: #FA0050; color: #fff; }
+th.col-orange { background: #FF9900; color: #1a1a1a; }
+th.col-yellow { background: #FFFF00; color: #1a1a1a; }
+th.col-gray   { background: #B7B7B7; color: #1a1a1a; }
+th.col-blue   { background: #C9DAF8; color: #1a1a1a; }
+
+/* ── STICKY (Estado / Alertas fijas a la derecha) ─────────── */
+.col-sticky {
+  position: sticky;
+  z-index: 3;
+}
+th.col-sticky {
+  z-index: 4;
+  background: #0D0D0D;
+  color: var(--ink-3);
+}
+tr.r-ok   .col-sticky { background: var(--surface); }
+tr.r-warn .col-sticky { background: var(--warn-bg); }
+tr.r-err  .col-sticky { background: var(--err-bg); }
+
+/* Celdas de formula (K y P): solo lectura, texto envuelto */
+.cell-formula {
+  white-space: normal;
+  word-break: break-word;
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+/* ── AVISOS POPUP (sin codigo de barras / sin imagen) ─────── */
+.avisos-popup {
+  position: fixed;
+  top: 68px;
+  right: 24px;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 16px 18px;
+  z-index: 500;
+  animation: popupIn .25s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes popupIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.avisos-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color .12s;
+}
+.avisos-popup-close:hover { color: var(--ink); }
+.avisos-popup-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-right: 20px;
+}
+.avisos-popup-item {
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.avisos-popup-item:last-child { margin-bottom: 0; }
+.avisos-popup-item.avisos-info {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--border-2);
+}
+.avisos-popup-item.avisos-error {
+  background: var(--err-bg);
+  color: var(--ink);
+  border: 1px solid var(--err-ring);
+}
+
+/* ── SCROLLBAR ──────────────────────────────────────── */
+
+::selection { background: var(--accent); color: #fff; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="wordmark">
+      <div class="wordmark-dot"></div>
+      PedidosYa
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-subtitle">Template Processor &mdash; Content</div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-chip" id="topStatus">
+      <div class="status-dot"></div>
+      Sin archivo
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Flujo</div>
+    <div class="nav-item active" id="nav-upload" onclick="goPanel('upload')">
+      <span class="icon">&#8679;</span> Cargar archivo
+    </div>
+    <div class="nav-item" id="nav-results" onclick="goPanel('results')">
+      <span class="icon">&#9783;</span> Resultados
+      <span class="nav-badge" id="nb-results"></span>
+    </div>
+    <div class="nav-item" id="nav-alerts" onclick="goPanel('alerts')">
+      <span class="icon">&#9888;</span> Alertas
+      <span class="nav-badge" id="nb-alerts"></span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Acciones</div>
+    <div class="nav-item" id="nav-dl" onclick="descargar()" style="opacity:.4;pointer-events:none">
+      <span class="icon">&#11015;</span> <span class="btn-label">Descargar .xlsx</span>
+    </div>
+    <div class="nav-item" id="nav-reset" onclick="resetTool()" style="opacity:.4;pointer-events:none">
+      <span class="icon">&#8617;</span> Nuevo archivo
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Modo</div>
+    <div style="font-size:11.5px;padding:4px 4px 10px;line-height:1.7">
+      <div style="color:var(--ok);font-weight:600;margin-bottom:2px">&#9632; Template PedidosYa</div>
+      <div style="color:var(--ink-3)">Columnas fijas v9 &middot; 100% en tu navegador</div>
+    </div>
+    <div class="sidebar-label">Reglas activas</div>
+    <div style="font-size:11.5px;color:var(--ink-3);padding:4px 4px;line-height:1.8">
+      <div>&#10003; SKU obligatorio</div>
+      <div>&#10003; Precio obligatorio</div>
+      <div>&#10003; Secci&oacute;n obligatoria</div>
+      <div>&#10003; EAN no obligatorio</div>
+      <div>&#10003; Imagen obligatoria y validada</div>
+      <div>&#10003; Unidades normalizadas</div>
+      <div>&#10003; Desc. m&aacute;x. 250 car.</div>
+      <div>&#10003; Nombre formado m&aacute;x. 64 car.</div>
+      <div>&#10003; K y P intocables</div>
+    </div>
+  </div>
+</nav>
+<div class="content">
+<div class="panel active" id="panel-upload">
+  <div class="upload-wrap">
+    <h1 class="upload-heading">Procesador de Templates</h1>
+    <p class="upload-sub">Subi el template que complet&oacute; el partner y lo procesamos autom&aacute;ticamente seg&uacute;n las pol&iacute;ticas de cat&aacute;logo &mdash; todo en tu navegador, nada se sube a ning&uacute;n servidor.
+    <br><small style="color:var(--ink-3);font-size:12px;margin-top:6px;display:block">&#9432; El archivo debe ser el template est&aacute;ndar de PedidosYa. Si el partner envi&oacute; otro formato, primero copi&aacute; los datos al template.</small></p>
+
+    <div class="dropzone" id="dz">
+      <div class="dz-icon">&#128203;</div>
+      <div class="dz-title">Arrastr&aacute; el archivo del partner</div>
+      <div class="dz-sub">o <span onclick="document.getElementById('fi').click()">busc&aacute;lo en tu computador</span> &mdash; .xlsx</div>
+      <input type="file" id="fi" accept=".xlsx,.xls">
+    </div>
+
+    <div class="file-pill" id="filePill">
+      <span>&#128196;</span>
+      <span class="pill-name" id="pillName"></span>
+      <button onclick="resetTool()">Quitar</button>
+    </div>
+
+    <button class="btn-run" id="btnRun" onclick="runProcess()">
+      Procesar archivo &rarr;
+    </button>
+  </div>
+
+  <div class="proc-state" id="procState">
+    <div class="loader"></div>
+    <div class="proc-label" id="procLabel">Leyendo archivo...</div>
+    <div class="proc-sub" id="procSub"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-results">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="action-row">
+    <div class="filter-group">
+      <button class="fchip active" data-f="all" onclick="applyFilter(this)">Todos</button>
+      <button class="fchip fc-err"  data-f="err"  onclick="applyFilter(this)">Errores</button>
+      <button class="fchip fc-warn" data-f="warn" onclick="applyFilter(this)">Advertencias</button>
+      <button class="fchip fc-ok"   data-f="ok"   onclick="applyFilter(this)">Completos</button>
+    </div>
+    <div class="action-spacer"></div>
+    <div class="edit-hint">&#9998; Clic en cualquier celda para editar</div>
+    <button class="btn success" onclick="descargar()">&#11015; <span class="btn-label">Descargar .xlsx</span></button>
+  </div>
+  <div class="tbl-outer">
+    <div class="tbl-scroll">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th class="col-red"    style="width:90px">A &middot; Activo (SI/NO) &#9998;</th>
+            <th class="col-red"    style="min-width:130px">B &middot; Codigo de Barras &#9998;</th>
+            <th class="col-red"    style="min-width:110px">C &middot; SKU &#9998;</th>
+            <th class="col-red"    style="width:90px">D &middot; Precio &#9998;</th>
+            <th class="col-red"    style="min-width:110px">E &middot; Seccion &#9998;</th>
+            <th class="col-orange" style="min-width:160px">F &middot; Que producto es &#9998;</th>
+            <th class="col-yellow" style="min-width:120px">G &middot; Marca (brand) &#9998;</th>
+            <th class="col-yellow" style="min-width:120px">H &middot; Variante &#9998;</th>
+            <th class="col-orange" style="width:90px">I &middot; Contenido &#9998;</th>
+            <th class="col-orange" style="width:90px">J &middot; Unidad &#9998;</th>
+            <th class="col-gray"   style="min-width:220px">K &middot; Nombre formado</th>
+            <th class="col-orange" style="min-width:160px">L &middot; Link/URL Imagen &#9998;</th>
+            <th class="col-yellow" style="min-width:200px">M &middot; Descripcion &#9998;</th>
+            <th class="col-blue"   style="width:90px">N &middot; Impuestos &#9998;</th>
+            <th class="col-blue"   style="min-width:150px">O &middot; EAN caja fraccionado &#9998;</th>
+            <th class="col-gray"   style="min-width:260px">P &middot; Validation INFO</th>
+            <th class="col-sticky" style="width:84px;right:220px">Estado</th>
+            <th class="col-sticky" style="min-width:220px;right:0">Alertas</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="info-bar">
+    <span><b>Imagen (L)</b>: se copia exactamente como la envi&oacute; el partner</span>
+    <span><b>Nombre formado (K)</b>: f&oacute;rmula autom&aacute;tica en el Excel de salida</span>
+    <span><b>Validation INFO (P)</b>: f&oacute;rmula autom&aacute;tica en el Excel de salida</span>
+  </div>
+</div>
+
+<div class="panel" id="panel-alerts">
+  <div id="alertsContent"></div>
+</div>
+</div></div>
+<script>
+// ═══ CONSTANTES DE NEGOCIO ═══════════════════════════════════
+// (portadas 1:1 desde rules.py — ver README para el detalle de cada regla)
+var UM = {
+  cc:'mL', ml:'mL', mL:'mL', ML:'mL', cl:'cl',
+  l:'L', L:'L', lt:'L', lts:'L', litro:'L', litros:'L',
+  kg:'kg', KG:'kg', g:'g', G:'g', gr:'g', grs:'g', mg:'mg',
+  oz:'oz', lb:'lb',
+  un:'Unidad', unid:'Unidad', unidad:'Unidad', unidades:'Unidades',
+  pack:'Paquetes', packs:'Paquetes',
+  cm2:'cm2', cm3:'cm3'
+};
+
+var MARCAS = [
+  "Coca Cola","Coca-Cola","Pepsi","Nestle","Unilever",
+  "Dove","Rexona","Axe","Lux","Clear","Pantene","Herbal Essences","Johnsons",
+  "Colgate","Oral-B","Gillette","Nivea","Lays","Pringles","Doritos","Cheetos",
+  "Ruffles","Maggi","Knorr","Hellmanns","Quaker","Kelloggs","Nescafe","Lipton",
+  "Milo","Tang","Zuko","Escudo","Cristal","Brahma","Heineken","Corona","Stella",
+  "Budweiser","Johnnie Walker","Buchanans","Chivas","Ballantine","Jack Daniel",
+  "Absolut","Smirnoff","Bacardi","Havana","Carozzi","Watts","Soprole","Colun",
+  "Loncoleche","Costa","McKay","Oreo","Trident","Halls","Tic Tac",
+  "Bon Yurt","Yogu Yogu","Danonino","Activia","Actimel"
+];
+
+var PRESENTACIONES = [
+  "Lata","Botella","Tarro","Caja","Pack","Sobre","Sachet","Bolsa",
+  "Paquete","Frasco","Tubo","Doypack","Pouch","Brik","Brick","Tetra"
+];
+
+var SABORES = [
+  "Frutilla","Fresa","Menta","Chocolate","Vainilla","Limon","Lima","Naranja",
+  "Manzana","Durazno","Pera","Uva","Maracuya","Mora","Frambuesa","Coco",
+  "Almendra","Avellana","Caramelo","Natural","Original","Light","Zero",
+  "Sin Azucar","Tinto","Blanco","Rose","Picante","Suave","Clasico"
+];
+
+var CONTENIDO_UNIDAD_SRC = "(\\d+[.,]?\\d*)\\s*(cc|ml|mL|cl|L|lt\\.?|lts\\.?|litros?|kg|g(?!al)|gr\\.?|grs\\.?|mg|oz|lb|un\\.?|unid\\.?|unidades?|packs?|cm2|cm3)\\s*\\.?";
+
+var UNIDADES_VALIDAS = [
+  "m","cm","L","cl","mL","gal","cm2","cm3","kg","g","mg","oz","lb",
+  "Unidad","Unidades","Sachets","Piezas","Bolsas","Cajas","Paquetes",
+  "Sobres","Cápsulas","Tabletas","Comprimidos","Hojas"
+];
+
+var ALIAS_UNIDAD = {
+  lt:'L', 'l.':'L', litro:'L', litros:'L',
+  ml:'mL', cc:'mL',
+  gr:'g', grs:'g', 'g.':'g',
+  un:'Unidad', unid:'Unidad', unidad:'Unidad', unidades:'Unidades',
+  pack:'Paquetes', packs:'Paquetes', paquete:'Paquetes',
+  sachet:'Sachets', pieza:'Piezas', bolsa:'Bolsas', sobre:'Sobres',
+  hoja:'Hojas', capsula:'Cápsulas', 'cápsula':'Cápsulas',
+  tableta:'Tabletas', comprimido:'Comprimidos'
+};
+
+var ENVASES_GENERICOS = {
+  botella:false, botellas:true,
+  bidon:false, 'bidón':false, bidones:true,
+  taza:false, tazas:true,
+  lata:false, latas:true
+};
+
+var UNIDADES_PROHIBIDAS = {
+  porcion:1,'porción':1,porciones:1, racion:1,'ración':1,raciones:1,
+  plancha:1,planchas:1, servicio:1,servicios:1, rebanada:1,rebanadas:1,
+  barra:1,barras:1, bandeja:1,bandejas:1, rollo:1,rollos:1, atado:1,atados:1,
+  mitad:1,mitades:1, docena:1,docenas:1, cajetilla:1,cajetillas:1,
+  orden:1,'órden':1, ordenes:1,'órdenes':1
+};
+
+var ABREVIACIONES_CONOCIDAS = {
+  comp:'comprimidos', caps:'cápsulas',
+  tab:'tabletas', und:'unidad', uds:'unidades',
+  pza:'pieza', pzas:'piezas', paq:'paquete', sob:'sobre',
+  bot:'botella'
+};
+
+var PRIO_SHEETS = ['MENU','TEMPLATE','CATALOGO','PRODUCTOS','CATALOG'];
+
+// ═══ HELPERS NUMERICOS ═══════════════════════════════════════
+function num_(v) { return (v % 1 === 0) ? Math.trunc(v) : v; }
+
+// ═══ POLITICA DE UNIDADES DE MEDIDA ══════════════════════════
+function normalizarUnidad(unidadRaw, contenido) {
+  if (!unidadRaw) return [unidadRaw, null];
+  var u = String(unidadRaw).trim();
+  var uLow = u.toLowerCase().replace(/\.+$/, '');
+  var advertencia = null;
+  var resultado = null;
+
+  for (var i = 0; i < UNIDADES_VALIDAS.length; i++) {
+    if (UNIDADES_VALIDAS[i].toLowerCase() === uLow) { resultado = UNIDADES_VALIDAS[i]; break; }
+  }
+  if (resultado === null && Object.prototype.hasOwnProperty.call(ALIAS_UNIDAD, uLow)) {
+    resultado = ALIAS_UNIDAD[uLow];
+  }
+  if (resultado === null && Object.prototype.hasOwnProperty.call(ENVASES_GENERICOS, uLow)) {
+    var esPlural = ENVASES_GENERICOS[uLow];
+    resultado = esPlural ? 'Unidades' : 'Unidad';
+    advertencia = "Unidad '" + u + "' se interpretó como '" + resultado + "' — revisar manualmente";
+  }
+  if (resultado === null && Object.prototype.hasOwnProperty.call(UNIDADES_PROHIBIDAS, uLow)) {
+    var esPlural2 = uLow.charAt(uLow.length - 1) === 's';
+    resultado = esPlural2 ? 'Unidades' : 'Unidad';
+    advertencia = "Unidad '" + u + "' no está permitida, se usó '" + resultado + "' — revisar manualmente";
+  }
+  if (resultado === null) {
+    var esPlural3 = uLow.charAt(uLow.length - 1) === 's';
+    resultado = esPlural3 ? 'Unidades' : 'Unidad';
+    advertencia = "Unidad '" + u + "' no reconocida, se usó '" + resultado + "' — revisar manualmente";
+  }
+  if ((resultado === 'Unidad' || resultado === 'Unidades') && contenido !== null && contenido !== undefined) {
+    var fc = parseFloat(contenido);
+    var esUno = !isNaN(fc) && fc === 1;
+    resultado = esUno ? 'Unidad' : 'Unidades';
+  }
+  return [resultado, advertencia];
+}
+
+// ═══ POLITICA DE IMAGEN ══════════════════════════════════════
+var IMG_RE = /^https?:\/\/.+\.(jpg|jpeg|png)$/i;
+
+function validarImagen(url) {
+  var u = String(url || '').trim();
+  if (/es\.imgbb\.com/i.test(u)) return 'El link de imagen no puede alojarse en es.imgbb.com';
+  if (!IMG_RE.test(u)) return 'Link de imagen inválido (debe empezar con http(s):// y terminar en .jpg/.jpeg/.png)';
+  return null;
+}
+
+// ═══ POLITICA DE SKU ═════════════════════════════════════════
+var SKU_RE = /^[A-Za-z0-9_-]+$/;
+
+function validarSku(sku) {
+  if (sku && !SKU_RE.test(sku)) return 'SKU contiene caracteres no permitidos (solo letras, números, - y _)';
+  return null;
+}
+
+// ═══ NOMBRE FORMADO (K) — mismo calculo que la formula real ═══
+function properCase(s) {
+  s = (s === null || s === undefined) ? '' : String(s);
+  var out = '';
+  var prevIsLetter = false;
+  for (var i = 0; i < s.length; i++) {
+    var ch = s[i];
+    if (/[a-zA-ZÀ-ÿ]/.test(ch)) {
+      out += prevIsLetter ? ch.toLowerCase() : ch.toUpperCase();
+      prevIsLetter = true;
+    } else {
+      out += ch;
+      prevIsLetter = false;
+    }
+  }
+  return out;
+}
+
+function nombreFormado(queEs, marca, variante, cont, uni) {
+  var contTxt = (cont !== null && cont !== undefined && cont !== '') ? String(cont) : '';
+  var partes = [properCase(queEs), properCase(marca), properCase(variante), properCase(contTxt), (uni || '')];
+  return partes.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function computeNombreFormado(r) { return nombreFormado(r.que_es, r.marca, r.variante, r.cont, r.uni); }
+
+function computeValidationInfo(r) {
+  var faltan = !r.sku || !r.precio || !r.que_es ||
+    (r.cont === null || r.cont === undefined || r.cont === '') || !r.uni;
+  return faltan ? 'Las columnas en naranja deben tener datos cuando el producto NO existe en la base' : 'OK';
+}
+
+// ═══ EMOJIS Y ABREVIACIONES (calidad de contenido) ═══════════
+var EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/u;
+
+function tieneEmoji(texto) { return !!(texto && EMOJI_RE.test(String(texto))); }
+
+function detectarAbreviacion(texto) {
+  if (!texto) return null;
+  var palabras = String(texto).match(/[A-Za-zÀ-ÿ]+/g) || [];
+  for (var i = 0; i < palabras.length; i++) {
+    var completa = ABREVIACIONES_CONOCIDAS[palabras[i].toLowerCase()];
+    if (completa) return "Posible abreviación '" + palabras[i] + "' — ¿'" + completa + "'?";
+  }
+  return null;
+}
+
+// ═══ EXTRACCION DE NOMBRE (fallback para templates genericos) ═
+function extraerContenidoUnidad(nombre) {
+  var re = new RegExp(CONTENIDO_UNIDAD_SRC, 'gi');
+  var m, last = null;
+  while ((m = re.exec(nombre)) !== null) {
+    last = m;
+    if (m.index === re.lastIndex) re.lastIndex++;
+  }
+  if (!last) return { nombre: nombre.trim(), contenido: null, unidad: null };
+  var cs = last[1].replace(',', '.');
+  var ru = last[2].replace(/\.$/, '');
+  var uk = null;
+  for (var k in UM) {
+    if (k.toLowerCase() === ru.toLowerCase()) { uk = UM[k]; break; }
+  }
+  if (uk === null) return { nombre: nombre.trim(), contenido: null, unidad: null };
+  var c = parseFloat(cs);
+  if (isNaN(c)) return { nombre: nombre.trim(), contenido: null, unidad: null };
+  var limpio = nombre.slice(0, last.index) + nombre.slice(last.index + last[0].length);
+  limpio = limpio.replace(/\s+/g, ' ').replace(/[\s.]+$/, '').trim();
+  return { nombre: limpio, contenido: num_(c), unidad: uk };
+}
+
+function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function detectarMarca(nombre) {
+  for (var i = 0; i < MARCAS.length; i++) {
+    var re = new RegExp('(^|\\s)' + escapeRe(MARCAS[i]) + '(\\s|$)', 'i');
+    if (re.test(nombre)) return MARCAS[i];
+  }
+  return null;
+}
+
+function remover(nombre, texto) {
+  var re = new RegExp('(^|\\s)' + escapeRe(texto) + '(\\s|$)', 'gi');
+  return nombre.replace(re, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extraerVariante(nombre) {
+  var lista = PRESENTACIONES.concat(SABORES);
+  for (var i = 0; i < lista.length; i++) {
+    var re = new RegExp('(^|\\s)' + escapeRe(lista[i]) + '(\\s|$)', 'i');
+    if (re.test(nombre)) {
+      var match = nombre.match(re)[0].trim();
+      return { variante: match, nombre: remover(nombre, match) };
+    }
+  }
+  return { variante: null, nombre: nombre };
+}
+
+function limpiarNombre(n) {
+  return n.replace(/^\d+[xX]?\s+/, '').replace(/\(\d{4}\)/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function limpiarPrecio(p) {
+  if (p === null || p === undefined || p === '-' || String(p).trim() === '') return null;
+  var s = String(p).replace(/[$\s]/g, '').replace(/\./g, '').replace(',', '.');
+  var v = parseFloat(s);
+  return (isNaN(v) || v <= 0) ? null : num_(v);
+}
+
+function limpiarEAN(e) {
+  if (!e) return null;
+  var s = String(e).replace(/[^0-9]/g, '');
+  return (s.length >= 8 && s.length <= 14) ? s : null;
+}
+
+function limpiarSKU(s) {
+  if (!s) return null;
+  return String(s).trim().replace(/\s+/g, '_').slice(0, 64);
+}
+
+function cantidadInv(inv) {
+  if (!inv) return 1;
+  var m = /^(\d+)\s+/i.exec(String(inv));
+  return m ? parseInt(m[1]) : 1;
+}
+
+function detectarHeader(rows) {
+  for (var i = 0; i < Math.min(5, rows.length); i++) {
+    var r = rows[i].map(function(c) { return (c === null || c === undefined || c === '') ? '' : String(c).toUpperCase().trim(); });
+    if (r.some(function(c) { return c === 'NOMBRE' || c === 'ITEM' || c.indexOf('PRODUCTO') >= 0; })) return i;
+    if (r.some(function(c) { return c.indexOf('ACTIVO') >= 0 || c.indexOf('BARRAS') >= 0; })) return i;
+  }
+  return 0;
+}
+
+function mapCols(hr) {
+  var m = {};
+  hr.forEach(function(cell, i) {
+    if (cell === null || cell === undefined || cell === '') return;
+    var c = String(cell).toUpperCase().trim();
+    if ((c === 'NOMBRE' || c === 'ITEM' || c === 'PRODUCTO') && m.nombre === undefined) m.nombre = i;
+    if (c === 'PRECIO' || c === 'PRICE' || c === 'COSTO') m.precio = i;
+    if (c.indexOf('DESCRIPCI') >= 0 && m.nombre !== undefined) m.desc = i;
+    if (c.indexOf('IMAGEN') >= 0 || c.indexOf('IMAGE') >= 0 || c.indexOf('FOTO') >= 0 || c.indexOf('URL') >= 0) m.img = i;
+    if (c === 'SKU') m.sku = i;
+    if ((c.indexOf('REF') >= 0 || c.indexOf('CODIGO INT') >= 0) && m.sku === undefined) m.sku = i;
+    if (c.indexOf('EAN') >= 0 || c.indexOf('GTIN') >= 0 || c.indexOf('BARRA') >= 0) m.ean = i;
+    if (c.indexOf('INVENTARIO') >= 0 || c.indexOf('STOCK') >= 0) m.inv = i;
+    if (c.indexOf('CATEG') >= 0 || c.indexOf('SECCION') >= 0 || c.indexOf('DEPART') >= 0) m.sec = i;
+    if (c === 'MARCA' || c === 'BRAND') m.marca = i;
+    if (c.indexOf('VARIANTE') >= 0 || c.indexOf('SABOR') >= 0 || c.indexOf('PRESENT') >= 0) m.variante = i;
+  });
+  return m;
+}
+
+function cellAt(row, idx, def) {
+  if (def === undefined) def = '';
+  if (idx === null || idx === undefined || idx < 0 || idx >= row.length) return def;
+  var v = row[idx];
+  return (v === null || v === undefined) ? def : v;
+}
+
+function detectarEsTemplatePeya(rows) {
+  if (rows.length < 2) return false;
+  var r2 = rows[1] || [];
+  var c0 = String(cellAt(r2, 0, '')).toUpperCase();
+  var c4 = String(cellAt(r2, 4, '')).toUpperCase();
+  return c0.indexOf('ACTIVO') >= 0 && c4.indexOf('SECCION') >= 0;
+}
+
+function elegirHoja(wb) {
+  for (var i = 0; i < wb.SheetNames.length; i++) {
+    if (PRIO_SHEETS.indexOf(wb.SheetNames[i].toUpperCase()) >= 0) return wb.SheetNames[i];
+  }
+  return wb.SheetNames[0];
+}
+
+// ═══ PROCESAMIENTO PRINCIPAL (equivalente a procesar_filas en Python) ═
+function procesarFilas(rows) {
+  var esTemplatePeya = detectarEsTemplatePeya(rows);
+  var hi, cm;
+
+  if (esTemplatePeya) {
+    hi = 1;
+    cm = {
+      activo: 0, nombre: 5, ean: 1, sku: 2, precio: 3, sec: 4,
+      marca: 6, variante: 7, cont_col: 8, uni_col: 9,
+      img: 11, desc: 12, inv: null,
+      impuestos: 13, ean_fraccionado: 14
+    };
+  } else {
+    hi = detectarHeader(rows);
+    cm = mapCols(rows[hi] || []);
+    if (cm.nombre === undefined) cm.nombre = 0;
+    if (cm.precio === undefined) cm.precio = 1;
+    if (cm.desc === undefined) cm.desc = 2;
+    if (cm.inv === undefined) cm.inv = 3;
+    if (cm.img === undefined) cm.img = 13;
+    if (cm.sku === undefined) cm.sku = 14;
+    if (cm.ean === undefined) cm.ean = 15;
+  }
+
+  var prods = [];
+  var cat = null;
+  for (var ri = hi + 1; ri < rows.length; ri++) {
+    var row = rows[ri];
+    var rawN = cellAt(row, cm.nombre, null);
+    var rawP = cellAt(row, cm.precio, null);
+    if (rawN === null || String(rawN).trim() === '') continue;
+    if (!esTemplatePeya && (rawP === null || rawP === '-' || String(rawP).trim() === '')) {
+      // Heuristica de "fila de categoria": solo aplica a templates
+      // genericos con filas divisorias. En el template fijo de PedidosYa
+      // toda fila con F lleno es un producto real.
+      cat = String(rawN).trim();
+      continue;
+    }
+    prods.push({
+      nombre_orig: String(rawN).trim(),
+      precio: rawP,
+      desc: String(cellAt(row, cm.desc, '')).trim(),
+      inv: cellAt(row, cm.inv, ''),
+      img: String(cellAt(row, cm.img, '')).trim(),
+      sku_r: cellAt(row, cm.sku, ''),
+      ean_r: cellAt(row, cm.ean, ''),
+      sec: (cm.sec !== undefined ? String(cellAt(row, cm.sec, '')) : (cat || '')).trim(),
+      marca_r: String(cellAt(row, cm.marca, '')).trim(),
+      var_r: String(cellAt(row, cm.variante, '')).trim(),
+      cont_r: esTemplatePeya ? cellAt(row, cm.cont_col, null) : null,
+      uni_r: esTemplatePeya ? String(cellAt(row, cm.uni_col, '')).trim() : '',
+      impuestos_r: String(cellAt(row, cm.impuestos, '')).trim(),
+      ean_frac_r: String(cellAt(row, cm.ean_fraccionado, '')).trim(),
+      activo_r: String(cellAt(row, cm.activo, '')).trim().toUpperCase()
+    });
+  }
+
+  var res = [];
+  prods.forEach(function(p) {
+    var nom = limpiarNombre(p.nombre_orig);
+
+    if (esTemplatePeya) {
+      nom = p.nombre_orig.trim();
+    } else {
+      var ex = extraerContenidoUnidad(nom);
+      nom = ex.nombre;
+    }
+
+    var cont = null, uni = null, uniDef = false;
+    if (p.cont_r !== null && p.cont_r !== '' && p.uni_r) {
+      var cv = parseFloat(String(p.cont_r).replace(',', '.'));
+      cont = isNaN(cv) ? null : num_(cv);
+      uni = p.uni_r;
+    } else if (!esTemplatePeya) {
+      var ex2 = extraerContenidoUnidad(p.nombre_orig);
+      cont = ex2.contenido; uni = ex2.unidad;
+    }
+
+    if (cont === null && !esTemplatePeya) {
+      var q = cantidadInv(p.inv);
+      cont = q;
+      uni = (q === 1) ? 'Unidad' : 'Unidades';
+      uniDef = true;
+    }
+
+    var unidadWarn = null;
+    if (uni) {
+      var normRes = normalizarUnidad(uni, cont);
+      uni = normRes[0]; unidadWarn = normRes[1];
+    }
+
+    var marca = p.marca_r || '';
+    if (!marca) {
+      var md = detectarMarca(nom);
+      if (md) { marca = md; nom = remover(nom, md); }
+    }
+
+    var variante = p.var_r || '';
+    if (!variante) {
+      var vx = extraerVariante(nom);
+      variante = vx.variante || '';
+      nom = vx.nombre;
+    }
+
+    var precio = limpiarPrecio(p.precio);
+    var ean = limpiarEAN(p.ean_r);
+    var sku = limpiarSKU(p.sku_r) || ean || '';
+    var desc = p.desc || '';
+    var img = p.img || '';
+    nom = nom.trim();
+
+    var errs = [], warns = [];
+    if (!sku) {
+      errs.push('SKU vacío');
+    } else {
+      var skuErr = validarSku(sku);
+      if (skuErr) errs.push(skuErr);
+    }
+    if (!precio) errs.push('Precio vacío o inválido');
+    if (!p.sec) errs.push('Sección vacía');
+
+    if (esTemplatePeya) {
+      if (!nom) errs.push('Que producto es vacío');
+      if (cont === null || !uni) errs.push('Contenido/Unidad vacíos');
+      if (!img) {
+        errs.push('Imagen vacía — el partner debe enviar el link');
+      } else {
+        var imgErr = validarImagen(img);
+        if (imgErr) errs.push(imgErr);
+      }
+    } else {
+      if (uniDef) warns.push('Unidad por defecto (' + uni + ')');
+      if (!img) warns.push('Sin imagen');
+      if (!nom) warns.push('Nombre quedó vacío');
+    }
+
+    if (unidadWarn) warns.push(unidadWarn);
+
+    if (desc.length > 250) warns.push('Descripción ' + desc.length + ' car. (máx 250)');
+
+    var nf = nombreFormado(nom, marca, variante, cont, uni);
+    if (nf.length > 64) warns.push('Nombre formado ' + nf.length + ' car. (máx 64)');
+
+    [nom, marca, variante].some(function(valor) {
+      if (tieneEmoji(valor)) { warns.push('El nombre/marca/variante contiene emojis'); return true; }
+      return false;
+    });
+    [nom, marca, variante].some(function(valor) {
+      var abrev = detectarAbreviacion(valor);
+      if (abrev) { warns.push(abrev); return true; }
+      return false;
+    });
+
+    var estado = errs.length ? 'err' : (warns.length ? 'warn' : 'ok');
+    res.push({
+      activo: p.activo_r || 'SI', ean: ean, sku: sku, precio: precio,
+      sec: p.sec, que_es: nom, marca: marca, variante: variante,
+      cont: cont, uni: uni, img: img, desc: desc,
+      impuestos: p.impuestos_r, ean_fraccionado: p.ean_frac_r,
+      orig: p.nombre_orig,
+      estado: estado, errs: errs, warns: warns
+    });
+  });
+
+  return res;
+}
+
+function computeStats(productos) {
+  var total = productos.length;
+  var ok = productos.filter(function(p) { return p.estado === 'ok'; }).length;
+  var warn = productos.filter(function(p) { return p.estado === 'warn'; }).length;
+  var err = productos.filter(function(p) { return p.estado === 'err'; }).length;
+  var descLarga = productos.filter(function(p) { return p.warns.some(function(w) { return w.indexOf('250') >= 0; }); }).length;
+  var sinBarcode = productos.filter(function(p) { return !p.ean; }).length;
+  var sinImagen = productos.filter(function(p) { return p.errs.some(function(e) { return e.toLowerCase().indexOf('imagen') >= 0; }); }).length;
+  return { total: total, ok: ok, warn: warn, err: err, desc_larga: descLarga, sin_barcode: sinBarcode, sin_imagen: sinImagen };
+}
+
+// ═══ DESCARGA — ExcelJS preserva el template original ════════
+var COLUMNAS_ESCRITURA = {
+  activo: 1, sku: 3, precio: 4, sec: 5,
+  que_es: 6, marca: 7, variante: 8, cont: 9, uni: 10,
+  img: 12, desc: 13, impuestos: 14
+};
+var COLUMNAS_EAN = { ean: 2, ean_fraccionado: 15 };
+
+function valorOCelBlanca(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string' && v.trim() === '') return null;
+  return v;
+}
+
+async function generarDescarga(arrayBuffer, sheetName, productos) {
+  var workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(arrayBuffer);
+  var ws = workbook.getWorksheet(sheetName);
+  if (!ws) throw new Error('No se encontró la hoja "' + sheetName + '" en el archivo original');
+
+  productos.forEach(function(p, i) {
+    var row = i + 3;
+    Object.keys(COLUMNAS_ESCRITURA).forEach(function(field) {
+      ws.getCell(row, COLUMNAS_ESCRITURA[field]).value = valorOCelBlanca(p[field]);
+    });
+    Object.keys(COLUMNAS_EAN).forEach(function(field) {
+      var v = valorOCelBlanca(p[field]);
+      var cell = ws.getCell(row, COLUMNAS_EAN[field]);
+      if (v === null) { cell.value = null; return; }
+      var s = String(v).trim();
+      if (/^\d+$/.test(s)) { cell.value = Number(s); cell.numFmt = '0'; }
+      else { cell.value = s; }
+    });
+  });
+
+  // ExcelJS no evalua formulas: forzamos que Excel recalcule K y P al
+  // abrir el archivo, ya que sus valores cacheados quedaron desactualizados.
+  workbook.calcProperties.fullCalcOnLoad = true;
+
+  var buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+// ═══ ESTADO ═══════════════════════════════════════════════════
+var curFile = null;
+var curSheetName = null;
+var procData = [];
+var curFilter = 'all';
+
+// ═══ NAV ═════════════════════════════════════════════════════
+function goPanel(name) {
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+  var nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+}
+
+// ═══ DRAG & DROP ═════════════════════════════════════════════
+var dz = document.getElementById('dz');
+var fi = document.getElementById('fi');
+
+dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', function() { dz.classList.remove('drag'); });
+dz.addEventListener('drop', function(e) {
+  e.preventDefault(); dz.classList.remove('drag');
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+dz.addEventListener('click', function(e) { if (e.target.tagName !== 'SPAN' || !e.target.parentElement.classList.contains('dz-sub')) fi.click(); });
+fi.addEventListener('change', function(e) { if (e.target.files.length) setFile(e.target.files[0]); });
+
+function setFile(f) {
+  curFile = f;
+  document.getElementById('pillName').textContent = f.name;
+  document.getElementById('filePill').style.display = 'flex';
+  document.getElementById('btnRun').style.display = 'block';
+  dz.style.display = 'none';
+  setStatus('Archivo listo', false);
+}
+
+function resetTool() {
+  curFile = null; curSheetName = null; procData = [];
+  fi.value = '';
+  document.getElementById('filePill').style.display = 'none';
+  document.getElementById('btnRun').style.display = 'none';
+  document.getElementById('procState').style.display = 'none';
+  dz.style.display = 'block';
+  document.getElementById('nav-dl').style.opacity = '.4';
+  document.getElementById('nav-dl').style.pointerEvents = 'none';
+  document.getElementById('nav-reset').style.opacity = '.4';
+  document.getElementById('nav-reset').style.pointerEvents = 'none';
+  document.getElementById('nb-results').textContent = '';
+  document.getElementById('nb-alerts').textContent = '';
+  var popup = document.getElementById('avisosPopup');
+  if (popup) popup.remove();
+  setStatus('Sin archivo', false);
+  goPanel('upload');
+}
+
+function setStatus(txt, ready) {
+  var el = document.getElementById('topStatus');
+  el.textContent = '';
+  var dot = document.createElement('div');
+  dot.className = 'status-dot';
+  el.appendChild(dot);
+  el.appendChild(document.createTextNode(' ' + txt));
+  el.className = 'status-chip' + (ready ? ' ready' : '');
+}
+
+function setMsg(label, sub) {
+  document.getElementById('procLabel').textContent = label;
+  document.getElementById('procSub').textContent = sub || '';
+}
+function tick() { return new Promise(function(r) { setTimeout(r, 20); }); }
+
+// ═══ PROCESO (100% en el navegador, sin servidor) ═════════════
+function runProcess() {
+  if (!curFile) return;
+  document.querySelector('.upload-wrap').style.display = 'none';
+  document.getElementById('procState').style.display = 'block';
+  setMsg('Leyendo archivo...', curFile.name);
+
+  (async function() {
+    try {
+      await tick();
+      var buf = await curFile.arrayBuffer();
+      var wb = XLSX.read(new Uint8Array(buf), { type: 'array', raw: true });
+      var sheetName = elegirHoja(wb);
+      curSheetName = sheetName;
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '', raw: true });
+
+      setMsg('Aplicando políticas de catálogo...', curFile.name);
+      await tick();
+      var productos = procesarFilas(rows);
+
+      procData = productos;
+      buildResults(procData, computeStats(productos));
+    } catch (err) {
+      document.getElementById('procState').style.display = 'none';
+      document.querySelector('.upload-wrap').style.display = 'block';
+      alert('Error al procesar:\n' + err.message);
+    }
+  })();
+}
+
+// ═══ RESULTS ═════════════════════════════════════════════════
+function buildResults(data, stats) {
+  var total = data.length;
+  var ok    = data.filter(function(r) { return r.estado==='ok'; }).length;
+  var warn  = data.filter(function(r) { return r.estado==='warn'; }).length;
+  var err   = data.filter(function(r) { return r.estado==='err'; }).length;
+
+  var statsHtml = [
+    ['Total', total, ''],
+    ['Completos', ok, ''],
+    ['Advertencias', warn, ''],
+    ['Errores', err, ''],
+    ['Desc >250', data.filter(function(r){return r.warns.some(function(w){return w.indexOf('250')>=0;});}).length, '']
+  ].map(function(s) {
+    return '<div class="stat-card"><div class="stat-val">' + s[1] + '</div><div class="stat-lbl">' + s[0] + '</div></div>';
+  }).join('');
+  document.getElementById('statsRow').innerHTML = statsHtml;
+
+  document.getElementById('nb-results').textContent = total;
+  document.getElementById('nb-results').className = 'nav-badge';
+  var alertCount = err + warn;
+  document.getElementById('nb-alerts').textContent = alertCount || '';
+  document.getElementById('nb-alerts').className = 'nav-badge' + (err > 0 ? ' err' : warn > 0 ? ' warn' : '');
+
+  document.getElementById('nav-dl').style.opacity = '1';
+  document.getElementById('nav-dl').style.pointerEvents = 'auto';
+  document.getElementById('nav-reset').style.opacity = '1';
+  document.getElementById('nav-reset').style.pointerEvents = 'auto';
+
+  renderTable(data, 'all');
+  buildAlerts(data);
+  mostrarAvisosPopup(stats);
+
+  document.getElementById('procState').style.display = 'none';
+  document.querySelector('.upload-wrap').style.display = 'block';
+  setStatus(total + ' productos listos', ok === total);
+
+  goPanel('results');
+}
+
+function mostrarAvisosPopup(stats) {
+  var existing = document.getElementById('avisosPopup');
+  if (existing) existing.remove();
+  if (!stats) return;
+
+  var mensajes = [];
+  if (stats.sin_barcode > 0) {
+    mensajes.push({
+      tipo: 'info',
+      texto: stats.sin_barcode + ' producto(s) sin código de barras. No es obligatorio, pero conviene revisarlo.'
+    });
+  }
+  if (stats.sin_imagen > 0) {
+    mensajes.push({
+      tipo: 'error',
+      texto: stats.sin_imagen + ' producto(s) sin imagen. Es obligatoria — pedile los links al partner antes de cargar el catálogo.'
+    });
+  }
+  if (!mensajes.length) return;
+
+  var popup = document.createElement('div');
+  popup.id = 'avisosPopup';
+  popup.className = 'avisos-popup';
+  popup.innerHTML =
+    '<button class="avisos-popup-close" aria-label="Cerrar">&times;</button>' +
+    '<div class="avisos-popup-title">Antes de descargar, revisá esto:</div>' +
+    mensajes.map(function(m) {
+      return '<div class="avisos-popup-item avisos-' + m.tipo + '">' + esc(m.texto) + '</div>';
+    }).join('');
+  document.body.appendChild(popup);
+  popup.querySelector('.avisos-popup-close').addEventListener('click', function() { popup.remove(); });
+}
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+var BADGE_CLASS = { ok: 'badge-ok', warn: 'badge-warn', err: 'badge-err' };
+var BADGE_TEXT  = { ok: 'OK', warn: 'Aviso', err: 'Error' };
+var ROW_CLASS   = { ok: 'r-ok', warn: 'r-warn', err: 'r-err' };
+
+function alertsHtmlFor(r) {
+  return r.errs.map(function(e) { return '<span class="a-err">• ' + esc(e) + '</span>'; })
+    .concat(r.warns.map(function(w) { return '<span class="a-warn">• ' + esc(w) + '</span>'; }))
+    .join('<br>');
+}
+
+function renderTable(data, filtro) {
+  curFilter = filtro;
+  var filtered = filtro === 'all' ? data : data.filter(function(r) { return r.estado === filtro; });
+  var tbody = document.getElementById('tblBody');
+  tbody.innerHTML = '';
+  var MAX = 400;
+
+  filtered.slice(0, MAX).forEach(function(r) {
+    var globalIdx = data.indexOf(r);
+    tbody.appendChild(buildRow(r, globalIdx));
+  });
+
+  if (filtered.length > MAX) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="19" style="text-align:center;color:var(--ink-3);padding:14px;font-size:12px">... y ' + (filtered.length-MAX) + ' filas más en el archivo descargado</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+function buildRow(r, globalIdx) {
+  var tr = document.createElement('tr');
+  tr.className = ROW_CLASS[r.estado];
+  tr.dataset.idx = globalIdx;
+
+  var cells = [
+    '<td><div class="cell cell-ro cell-num" style="font-size:11px;color:var(--ink-3)">' + (globalIdx+3) + '</div></td>',
+    cellHtml(r, globalIdx, 'activo'),
+    cellHtml(r, globalIdx, 'ean'),
+    cellHtml(r, globalIdx, 'sku'),
+    cellHtml(r, globalIdx, 'precio'),
+    cellHtml(r, globalIdx, 'sec'),
+    cellHtml(r, globalIdx, 'que_es', { title: r.orig }),
+    cellHtml(r, globalIdx, 'marca'),
+    cellHtml(r, globalIdx, 'variante'),
+    cellHtml(r, globalIdx, 'cont'),
+    cellHtml(r, globalIdx, 'uni'),
+    '<td><div class="cell cell-ro cell-formula cell-k">' + esc(computeNombreFormado(r)) + '</div></td>',
+    cellHtml(r, globalIdx, 'img'),
+    cellHtml(r, globalIdx, 'desc'),
+    cellHtml(r, globalIdx, 'impuestos'),
+    cellHtml(r, globalIdx, 'ean_fraccionado'),
+    '<td><div class="cell cell-ro cell-formula cell-p">' + esc(computeValidationInfo(r)) + '</div></td>',
+    '<td class="col-sticky" style="right:220px"><div class="cell cell-ro cell-estado"><span class="badge ' + BADGE_CLASS[r.estado] + '">' + BADGE_TEXT[r.estado] + '</span></div></td>',
+    '<td class="col-sticky" style="right:0"><div class="cell cell-ro alert-list cell-alertas">' + (alertsHtmlFor(r) || '') + '</div></td>'
+  ];
+
+  tr.innerHTML = cells.join('');
+  bindRowEditing(tr);
+  return tr;
+}
+
+function cellHtml(r, globalIdx, field, opts) {
+  opts = opts || {};
+  var val = r[field];
+  var display = (val === null || val === undefined) ? '' : val;
+  var emptyCls = (val === null || val === undefined || val === '') ? ' cell-empty' : '';
+  var titleAttr = opts.title ? ' title="' + esc(opts.title) + '"' : '';
+  return '<td><div class="cell' + emptyCls + '" contenteditable="true" data-field="' + field + '" data-idx="' + globalIdx + '"' + titleAttr + '>' + esc(display) + '</div></td>';
+}
+
+function bindRowEditing(tr) {
+  tr.querySelectorAll('[contenteditable][data-field]').forEach(function(el) {
+    el.addEventListener('blur', function() { onCellEdited(el); });
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var cells = Array.from(document.querySelectorAll('[contenteditable][data-field]'));
+        var cur = cells.indexOf(el);
+        var next = cells[e.shiftKey ? cur - 1 : cur + 1];
+        if (next) { next.focus(); var range = document.createRange(); range.selectNodeContents(next); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); }
+      }
+      if (e.key === 'Escape') el.blur();
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    });
+  });
+}
+
+// Recalcula errores/advertencias/estado de un producto tras editarlo en la
+// tabla, con las mismas reglas obligatorias que procesarFilas() para el
+// template fijo. La normalizacion de unidades no se re-corre aca (solo al
+// procesar el archivo), asi que si se edita la unidad a mano queda tal cual
+// se escribio.
+function revalidar(r) {
+  r.errs = [];
+  if (!r.sku) {
+    r.errs.push('SKU vacío');
+  } else {
+    var skuErr = validarSku(r.sku);
+    if (skuErr) r.errs.push(skuErr);
+  }
+  if (!r.precio) r.errs.push('Precio vacío o inválido');
+  if (!r.sec)    r.errs.push('Sección vacía');
+  if (!r.que_es || !String(r.que_es).trim()) r.errs.push('Que producto es vacío');
+  if (r.cont === null || r.cont === undefined || r.cont === '' || !r.uni) {
+    r.errs.push('Contenido/Unidad vacíos');
+  }
+  if (!r.img) {
+    r.errs.push('Imagen vacía — el partner debe enviar el link');
+  } else {
+    var imgErr = validarImagen(r.img);
+    if (imgErr) r.errs.push(imgErr);
+  }
+
+  r.warns = [];
+  var descLen = (r.desc || '').length;
+  if (descLen > 250) r.warns.push('Descripción ' + descLen + ' car. (máx 250)');
+  var nfLen = computeNombreFormado(r).length;
+  if (nfLen > 64) r.warns.push('Nombre formado ' + nfLen + ' car. (máx 64)');
+
+  r.estado = r.errs.length > 0 ? 'err' : (r.warns.length > 0 ? 'warn' : 'ok');
+}
+
+function onCellEdited(el) {
+  var idx   = parseInt(el.dataset.idx, 10);
+  var field = el.dataset.field;
+  var val   = el.textContent.trim();
+  var r     = procData[idx];
+
+  if (field === 'cont') {
+    var n = parseFloat(val.replace(',', '.'));
+    r[field] = isNaN(n) ? null : (n % 1 === 0 ? parseInt(n) : n);
+  } else if (field === 'precio') {
+    var n2 = parseFloat(val.replace(/[$.\s]/g, '').replace(',', '.'));
+    r[field] = isNaN(n2) || n2 <= 0 ? null : (n2 % 1 === 0 ? parseInt(n2) : n2);
+  } else {
+    r[field] = val;
+  }
+
+  el.classList.toggle('cell-empty', r[field] === null || r[field] === undefined || r[field] === '');
+
+  revalidar(r);
+
+  var tr = el.closest('tr');
+  tr.className = ROW_CLASS[r.estado];
+  tr.querySelector('.cell-k').textContent = computeNombreFormado(r);
+  tr.querySelector('.cell-p').textContent = computeValidationInfo(r);
+  var estadoCell = tr.querySelector('.cell-estado');
+  estadoCell.innerHTML = '<span class="badge ' + BADGE_CLASS[r.estado] + '">' + BADGE_TEXT[r.estado] + '</span>';
+  tr.querySelector('.cell-alertas').innerHTML = alertsHtmlFor(r) || '';
+}
+
+function applyFilter(btn) {
+  document.querySelectorAll('.fchip').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderTable(procData, btn.getAttribute('data-f'));
+}
+
+function buildAlerts(data) {
+  var conA = data.filter(function(r) { return r.errs.length > 0 || r.warns.length > 0; });
+  if (conA.length === 0) {
+    document.getElementById('alertsContent').innerHTML =
+      '<div class="alerts-empty">✓ Sin alertas. Todos los productos están listos para cargar.</div>';
+    return;
+  }
+  var html = '<div style="margin-bottom:16px;font-size:13px;color:var(--ink-3)">' +
+    conA.length + ' productos con alertas</div><div class="alerts-grid">';
+  conA.forEach(function(r) {
+    var fila = data.indexOf(r) + 3;
+    var tags = r.errs.map(function(e) { return '<span class="alert-tag t-err">' + esc(e) + '</span>'; })
+      .concat(r.warns.map(function(w) { return '<span class="alert-tag t-warn">' + esc(w) + '</span>'; })).join('');
+    html += '<div class="alert-card ' + (r.errs.length > 0 ? 'ac-err' : 'ac-warn') + '">' +
+      '<div class="alert-fila">Fila ' + fila + '</div>' +
+      '<div class="alert-prod">' + esc(r.orig).slice(0,45) + '</div>' +
+      '<div class="alert-msgs">' + tags + '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('alertsContent').innerHTML = html;
+}
+
+// ═══ DESCARGA (ExcelJS abre el archivo original y solo inyecta datos) ═
+// Reescribir un template de 20.000 filas preservando todo (estilos,
+// fórmulas, anchos de columna) le toma a ExcelJS unos segundos — se avisa
+// con un estado de carga en los botones para que no parezca colgado.
+function descargar() {
+  if (!procData.length || !curFile) return;
+
+  var btns = document.querySelectorAll('[onclick="descargar()"]');
+  var labels = [];
+  btns.forEach(function(b) {
+    b.classList.add('is-loading');
+    var label = b.querySelector('.btn-label');
+    labels.push({ el: label, original: label ? label.textContent : null });
+    if (label) label.textContent = 'Generando...';
+  });
+
+  (async function() {
+    try {
+      var buf = await curFile.arrayBuffer();
+      var blob = await generarDescarga(buf, curSheetName, procData);
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_procesado_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error al descargar:\n' + err.message);
+    } finally {
+      btns.forEach(function(b) { b.classList.remove('is-loading'); });
+      labels.forEach(function(l) { if (l.el) l.el.textContent = l.original; });
+    }
+  })();
+}
+</script>
+</body>
+</html>

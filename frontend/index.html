@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Template Processor — PedidosYa Content</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="wordmark">
+      <div class="wordmark-dot"></div>
+      PedidosYa
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-subtitle">Template Processor &mdash; Content</div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-chip" id="topStatus">
+      <div class="status-dot"></div>
+      Sin archivo
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Flujo</div>
+    <div class="nav-item active" id="nav-upload" onclick="goPanel('upload')">
+      <span class="icon">&#8679;</span> Cargar archivo
+    </div>
+    <div class="nav-item" id="nav-results" onclick="goPanel('results')">
+      <span class="icon">&#9783;</span> Resultados
+      <span class="nav-badge" id="nb-results"></span>
+    </div>
+    <div class="nav-item" id="nav-alerts" onclick="goPanel('alerts')">
+      <span class="icon">&#9888;</span> Alertas
+      <span class="nav-badge" id="nb-alerts"></span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Acciones</div>
+    <div class="nav-item" id="nav-dl" onclick="descargar()" style="opacity:.4;pointer-events:none">
+      <span class="icon">&#11015;</span> Descargar .xlsx
+    </div>
+    <div class="nav-item" id="nav-reset" onclick="resetTool()" style="opacity:.4;pointer-events:none">
+      <span class="icon">&#8617;</span> Nuevo archivo
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Modo</div>
+    <div style="font-size:11.5px;padding:4px 4px 10px;line-height:1.7">
+      <div style="color:var(--ok);font-weight:600;margin-bottom:2px">&#9632; Template PedidosYa</div>
+      <div style="color:var(--ink-3)">Columnas fijas v9</div>
+    </div>
+    <div class="sidebar-label">Reglas activas</div>
+    <div style="font-size:11.5px;color:var(--ink-3);padding:4px 4px;line-height:1.8">
+      <div>&#10003; SKU obligatorio</div>
+      <div>&#10003; Precio obligatorio</div>
+      <div>&#10003; Secci&oacute;n obligatoria</div>
+      <div>&#10003; EAN no obligatorio</div>
+      <div>&#10003; Desc. m&aacute;x. 250 car.</div>
+      <div>&#10003; Imagen sin modificar</div>
+      <div>&#10003; K y P intocables</div>
+    </div>
+  </div>
+</nav>
+<div class="content">
+<div class="panel active" id="panel-upload">
+  <div class="upload-wrap">
+    <h1 class="upload-heading">Procesador de Templates</h1>
+    <p class="upload-sub">Subi el template que complet&oacute; el partner y lo procesamos autom&aacute;ticamente seg&uacute;n las pol&iacute;ticas de cat&aacute;logo.
+    <br><small style="color:var(--ink-3);font-size:12px;margin-top:6px;display:block">&#9432; El archivo debe ser el template est&aacute;ndar de PedidosYa. Si el partner envi&oacute; otro formato, primero copi&aacute; los datos al template.</small></p>
+
+    <div class="dropzone" id="dz">
+      <div class="dz-icon">&#128203;</div>
+      <div class="dz-title">Arrastr&aacute; el archivo del partner</div>
+      <div class="dz-sub">o <span onclick="document.getElementById('fi').click()">busc&aacute;lo en tu computador</span> &mdash; .xlsx</div>
+      <input type="file" id="fi" accept=".xlsx,.xls">
+    </div>
+
+    <div class="file-pill" id="filePill">
+      <span>&#128196;</span>
+      <span class="pill-name" id="pillName"></span>
+      <button onclick="resetTool()">Quitar</button>
+    </div>
+
+    <button class="btn-run" id="btnRun" onclick="runProcess()">
+      Procesar archivo &rarr;
+    </button>
+  </div>
+
+  <div class="proc-state" id="procState">
+    <div class="loader"></div>
+    <div class="proc-label" id="procLabel">Leyendo archivo...</div>
+    <div class="proc-sub" id="procSub"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-results">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="action-row">
+    <div class="filter-group">
+      <button class="fchip active" data-f="all" onclick="applyFilter(this)">Todos</button>
+      <button class="fchip fc-err"  data-f="err"  onclick="applyFilter(this)">Errores</button>
+      <button class="fchip fc-warn" data-f="warn" onclick="applyFilter(this)">Advertencias</button>
+      <button class="fchip fc-ok"   data-f="ok"   onclick="applyFilter(this)">Completos</button>
+    </div>
+    <div class="action-spacer"></div>
+    <div class="edit-hint">&#9998; Clic en cualquier celda para editar</div>
+    <button class="btn success" onclick="descargar()">&#11015; Descargar .xlsx</button>
+  </div>
+  <div class="tbl-outer">
+    <div class="tbl-scroll">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th class="col-red"    style="width:90px">A &middot; Activo (SI/NO) &#9998;</th>
+            <th class="col-red"    style="min-width:130px">B &middot; Codigo de Barras &#9998;</th>
+            <th class="col-red"    style="min-width:110px">C &middot; SKU &#9998;</th>
+            <th class="col-red"    style="width:90px">D &middot; Precio &#9998;</th>
+            <th class="col-red"    style="min-width:110px">E &middot; Seccion &#9998;</th>
+            <th class="col-orange" style="min-width:160px">F &middot; Que producto es &#9998;</th>
+            <th class="col-yellow" style="min-width:120px">G &middot; Marca (brand) &#9998;</th>
+            <th class="col-yellow" style="min-width:120px">H &middot; Variante &#9998;</th>
+            <th class="col-orange" style="width:90px">I &middot; Contenido &#9998;</th>
+            <th class="col-orange" style="width:90px">J &middot; Unidad &#9998;</th>
+            <th class="col-gray"   style="min-width:220px">K &middot; Nombre formado</th>
+            <th class="col-orange" style="min-width:160px">L &middot; Link/URL Imagen &#9998;</th>
+            <th class="col-yellow" style="min-width:200px">M &middot; Descripcion &#9998;</th>
+            <th class="col-blue"   style="width:90px">N &middot; Impuestos &#9998;</th>
+            <th class="col-blue"   style="min-width:150px">O &middot; EAN caja fraccionado &#9998;</th>
+            <th class="col-gray"   style="min-width:260px">P &middot; Validation INFO</th>
+            <th class="col-sticky" style="width:84px;right:220px">Estado</th>
+            <th class="col-sticky" style="min-width:220px;right:0">Alertas</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="info-bar">
+    <span><b>Imagen (L)</b>: se copia exactamente como la envi&oacute; el partner</span>
+    <span><b>Nombre formado (K)</b>: f&oacute;rmula autom&aacute;tica en el Excel de salida</span>
+    <span><b>Validation INFO (P)</b>: f&oacute;rmula autom&aacute;tica en el Excel de salida</span>
+  </div>
+</div>
+
+<div class="panel" id="panel-alerts">
+  <div id="alertsContent"></div>
+</div>
+</div></div>
+<script src="app.js"></script>
+</body>
+</html>

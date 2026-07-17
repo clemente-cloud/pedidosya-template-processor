@@ -1158,22 +1158,24 @@ function procesarFilas(rows) {
 
   var res = [];
   prods.forEach(function(p) {
-    var nom = limpiarNombre(p.nombre_orig);
+    // El partner puede llegar de dos formas: con F/G/H/I/J ya separadas
+    // (caso ideal), o con todo el nombre junto en F y G/H/I/J vacias (muy
+    // comun en la practica). Solo confiamos en I/J tal cual cuando AMBAS
+    // vienen cargadas; si falta alguna, intentamos extraer contenido y
+    // unidad del texto combinado de F, igual que el modo generico — asi
+    // "Cerveza Austral Lata 470cc" no queda con Contenido/Unidad vacios
+    // solo porque el partner no las separo en columnas propias.
+    var camposSeparados = (p.cont_r !== null && p.cont_r !== '' && p.uni_r);
 
-    if (esTemplatePeya) {
+    var nom, cont = null, uni = null, uniDef = false;
+    if (camposSeparados) {
       nom = p.nombre_orig.trim();
-    } else {
-      var ex = extraerContenidoUnidad(nom);
-      nom = ex.nombre;
-    }
-
-    var cont = null, uni = null, uniDef = false;
-    if (p.cont_r !== null && p.cont_r !== '' && p.uni_r) {
       var cv = parseFloat(String(p.cont_r).replace(',', '.'));
       cont = isNaN(cv) ? null : num_(cv);
       uni = p.uni_r;
-    } else if (!esTemplatePeya) {
-      var ex2 = extraerContenidoUnidad(p.nombre_orig);
+    } else {
+      var ex2 = extraerContenidoUnidad(esTemplatePeya ? p.nombre_orig : limpiarNombre(p.nombre_orig));
+      nom = ex2.contenido !== null ? ex2.nombre : (esTemplatePeya ? p.nombre_orig.trim() : limpiarNombre(p.nombre_orig));
       cont = ex2.contenido; uni = ex2.unidad;
     }
 

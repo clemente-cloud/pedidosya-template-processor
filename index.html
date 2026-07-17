@@ -11,30 +11,30 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --accent:    #E31937;
-  --accent-dim:#C4141F;
-  --amber:     #C99A3E;
-  --ink:       #F2F2F0;
-  --ink-2:     #B8B8B5;
-  --ink-3:     #8A8A87;
-  --border:    #232323;
-  --border-2:  #333333;
-  --bg:        #0A0A0A;
-  --surface:   #111111;
-  --surface-2: #161616;
+  --accent:    #FF2D6B;
+  --accent-dim:#E0225A;
+  --amber:     #E0A83E;
+  --ink:       #F5F3F2;
+  --ink-2:     #BFBAB8;
+  --ink-3:     #8F8987;
+  --border:    #272321;
+  --border-2:  #38322F;
+  --bg:        #100C0D;
+  --surface:   #171213;
+  --surface-2: #1E1718;
   --ok:        #6FCF97;
   --ok-bg:     #0E1710;
   --ok-ring:   #1F3327;
   --warn:      var(--amber);
-  --warn-bg:   #1A160C;
-  --warn-ring: #4A3A1A;
+  --warn-bg:   #1E1508;
+  --warn-ring: #4A3714;
   --err:       #FFFFFF;
-  --err-bg:    #1A0C0E;
+  --err-bg:    #250D14;
   --err-ring:  var(--accent);
-  --radius:    6px;
-  --radius-sm: 3px;
-  --shadow:    0 1px 3px rgba(0,0,0,.2), 0 1px 2px rgba(0,0,0,.15);
-  --shadow-md: 0 4px 14px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.2);
+  --radius:    12px;
+  --radius-sm: 8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.18);
+  --shadow-md: 0 8px 20px rgba(255,45,107,.12), 0 2px 8px rgba(0,0,0,.3);
   --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
 
@@ -676,27 +676,7 @@ tr.r-err  .col-sticky { background: var(--err-bg); }
     </div>
   </div>
 
-  <div class="sidebar-divider"></div>
 
-  <div class="sidebar-section">
-    <div class="sidebar-label">Modo</div>
-    <div style="font-size:11.5px;padding:4px 4px 10px;line-height:1.7">
-      <div style="color:var(--ok);font-weight:600;margin-bottom:2px">&#9632; Template PedidosYa</div>
-      <div style="color:var(--ink-3)">Columnas fijas v9 &middot; 100% en tu navegador</div>
-    </div>
-    <div class="sidebar-label">Reglas activas</div>
-    <div style="font-size:11.5px;color:var(--ink-3);padding:4px 4px;line-height:1.8">
-      <div>&#10003; SKU obligatorio</div>
-      <div>&#10003; Precio obligatorio</div>
-      <div>&#10003; Secci&oacute;n obligatoria</div>
-      <div>&#10003; EAN no obligatorio</div>
-      <div>&#10003; Imagen obligatoria y validada</div>
-      <div>&#10003; Unidades normalizadas</div>
-      <div>&#10003; Desc. m&aacute;x. 250 car.</div>
-      <div>&#10003; Nombre formado m&aacute;x. 64 car.</div>
-      <div>&#10003; K y P intocables</div>
-    </div>
-  </div>
 </nav>
 <div class="content">
 <div class="panel active" id="panel-upload">

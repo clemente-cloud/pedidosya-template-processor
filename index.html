@@ -13,28 +13,28 @@
 :root {
   --accent:    #FF2D6B;
   --accent-dim:#E0225A;
-  --amber:     #E0A83E;
-  --ink:       #F5F3F2;
-  --ink-2:     #BFBAB8;
-  --ink-3:     #8F8987;
-  --border:    #272321;
-  --border-2:  #38322F;
-  --bg:        #100C0D;
-  --surface:   #171213;
-  --surface-2: #1E1718;
-  --ok:        #6FCF97;
-  --ok-bg:     #0E1710;
-  --ok-ring:   #1F3327;
+  --amber:     #B8750A;
+  --ink:       #201A18;
+  --ink-2:     #6B615D;
+  --ink-3:     #9B908C;
+  --border:    #EDE7E4;
+  --border-2:  #DCD3CF;
+  --bg:        #FBF9F8;
+  --surface:   #FFFFFF;
+  --surface-2: #F5F0EE;
+  --ok:        #1E9E52;
+  --ok-bg:     #E8F8EF;
+  --ok-ring:   #BEEACB;
   --warn:      var(--amber);
-  --warn-bg:   #1E1508;
-  --warn-ring: #4A3714;
-  --err:       #FFFFFF;
-  --err-bg:    #250D14;
+  --warn-bg:   #FFF6E6;
+  --warn-ring: #F0DBA8;
+  --err:       #fff;
+  --err-bg:    #FFEAF0;
   --err-ring:  var(--accent);
   --radius:    12px;
   --radius-sm: 8px;
-  --shadow:    0 1px 3px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.18);
-  --shadow-md: 0 8px 20px rgba(255,45,107,.12), 0 2px 8px rgba(0,0,0,.3);
+  --shadow:    0 1px 3px rgba(32,26,24,.06), 0 1px 2px rgba(32,26,24,.04);
+  --shadow-md: 0 12px 28px rgba(255,45,107,.14), 0 2px 8px rgba(32,26,24,.08);
   --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
 
@@ -211,7 +211,7 @@ body {
 }
 .dropzone:hover, .dropzone.drag {
   border-color: var(--accent);
-  background: #170B0D;
+  background: var(--err-bg);
 }
 .dropzone input { display: none; }
 .dz-icon { font-size: 36px; margin-bottom: 14px; }
@@ -371,12 +371,12 @@ body {
 .fchip:active { transform: scale(0.96); }
 .fchip.active {
   background: var(--ink);
-  color: #0A0A0A;
+  color: var(--surface);
   border-color: var(--ink);
 }
 .fchip.fc-err.active  { background: var(--accent); color: #fff; border-color: var(--accent); }
-.fchip.fc-warn.active { background: var(--warn);   color: #1A1408; border-color: var(--warn); }
-.fchip.fc-ok.active   { background: var(--ok);     color: #071B0F; border-color: var(--ok); }
+.fchip.fc-warn.active { background: var(--warn);   color: #fff; border-color: var(--warn); }
+.fchip.fc-ok.active   { background: var(--ok);     color: #fff; border-color: var(--ok); }
 
 .action-spacer { flex: 1; }
 .edit-hint {
@@ -402,7 +402,7 @@ table {
   font-size: 12.5px;
 }
 thead tr {
-  background: #0D0D0D;
+  background: var(--surface-2);
   border-bottom: 1px solid var(--border);
 }
 th {
@@ -424,7 +424,7 @@ tr:last-child td { border-bottom: none; }
 tr.r-ok   { background: var(--surface); }
 tr.r-warn { background: var(--warn-bg); }
 tr.r-err  { background: var(--err-bg); }
-tr:hover td { background: #1C1C1C !important; }
+tr:hover td { background: var(--surface-2) !important; }
 
 /* Editable cells */
 .cell {
@@ -438,7 +438,7 @@ tr:hover td { background: #1C1C1C !important; }
   position: relative;
 }
 .cell[contenteditable]:focus {
-  background: #1F1408 !important;
+  background: var(--warn-bg) !important;
   box-shadow: inset 0 0 0 2px var(--amber);
 }
 .cell.cell-ro { cursor: default; color: var(--ink-2); }
@@ -549,7 +549,7 @@ th.col-blue   { background: #C9DAF8; color: #1a1a1a; }
 }
 th.col-sticky {
   z-index: 4;
-  background: #0D0D0D;
+  background: var(--surface-2);
   color: var(--ink-3);
 }
 tr.r-ok   .col-sticky { background: var(--surface); }
@@ -624,7 +624,7 @@ tr.r-err  .col-sticky { background: var(--err-bg); }
 ::selection { background: var(--accent); color: #fff; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 </style>
 </head>
 <body>
